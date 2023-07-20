@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -91,6 +92,7 @@ func main() {
 	}
 	defer screen.Fini()
 
+	// Read the entire input into a single string
 	var input string
 	if len(flag.Args()) > 0 {
 		// Read from the file if a filename is provided as a command-line argument
@@ -100,38 +102,41 @@ func main() {
 		input = nms_read_stdin()
 	}
 
-	// Process the input
-	nms_chars := nms_process_input(input)
+	// Split the input into lines and process each line
+	lines := strings.Split(input, "\n")
+	for y, line := range lines {
+		// Process the line
+		nms_chars := nms_process_input(line)
 
-	// Output the processed input
-	if *opt_random {
-		rand.Shuffle(len(nms_chars), func(i, j int) { nms_chars[i], nms_chars[j] = nms_chars[j], nms_chars[i] })
-	}
-
-	w, _ := screen.Size() // Get terminal window size
-	for i := range nms_chars {
-		x := i % w // Calculate x-coordinate
-		y := i / w // Calculate y-coordinate
-
-		// Scramble the character
-		screen.SetContent(x, y, nms_chars[i].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
-		screen.Show()
-		if !*opt_auto {
-			time.Sleep(time.Duration(*opt_delay) * time.Millisecond)
+		// If random flag is set, shuffle the characters
+		if *opt_random {
+			rand.Shuffle(len(nms_chars), func(i, j int) { nms_chars[i], nms_chars[j] = nms_chars[j], nms_chars[i] })
 		}
 
-		// Reveal the character
-		nms_reveal(&nms_chars[i])
-		screen.SetContent(x, y, nms_chars[i].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
-		screen.Show()
-		if !*opt_auto {
-			time.Sleep(time.Duration(*opt_delay) * time.Millisecond)
+		// Output the processed line
+		for x, ch := range nms_chars {
+			// Scramble the character
+			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+			screen.Show()
+			if !*opt_auto {
+				delay(time.Duration(*opt_delay))
+			}
+		}
+
+		// Reveal the original text
+		for x, ch := range nms_chars {
+			// Reveal the character
+			nms_reveal(&ch)
+			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+			screen.Show()
+			if !*opt_auto {
+				delay(time.Duration(*opt_delay))
+			}
 		}
 	}
 
-    // Wait for a key press before exiting
-    if !*opt_auto {
-        screen.PollEvent()
-    }
-
+	// Wait for a key press before exiting
+	if !*opt_auto {
+		screen.PollEvent()
+	}
 }
