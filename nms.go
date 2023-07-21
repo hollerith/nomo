@@ -54,8 +54,8 @@ func delay(ms time.Duration) {
 
 func nms_read_stdin() string {
 	reader := bufio.NewReader(os.Stdin)
-	input, _ := reader.ReadString('\n')
-	return input
+	input, _ := ioutil.ReadAll(reader)
+	return string(input)
 }
 
 func nms_read_file(filename string) string {
@@ -104,35 +104,40 @@ func main() {
 
 	// Split the input into lines and process each line
 	lines := strings.Split(input, "\n")
-	for y, line := range lines {
-		// Process the line
-		nms_chars := nms_process_input(line)
+	nms_lines := make([][]NmsChar, len(lines))
+	for i, line := range lines {
+		nms_lines[i] = nms_process_input(line)
+	}
 
-		// If random flag is set, shuffle the characters
-		if *opt_random {
-			rand.Shuffle(len(nms_chars), func(i, j int) { nms_chars[i], nms_chars[j] = nms_chars[j], nms_chars[i] })
-		}
-
-		// Output the processed line
+	// Scramble and display all lines
+	for y, nms_chars := range nms_lines {
 		for x, ch := range nms_chars {
-			// Scramble the character
 			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
-			screen.Show()
-			if !*opt_auto {
-				delay(time.Duration(*opt_delay))
-			}
 		}
+	}
+	screen.Show()
+	delay(time.Duration(*opt_delay))
 
-		// Reveal the original text
-		for x, ch := range nms_chars {
-			// Reveal the character
-			nms_reveal(&ch)
-			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
-			screen.Show()
-			if !*opt_auto {
-				delay(time.Duration(*opt_delay))
-			}
+	// Prepare the list of all characters to reveal
+	type Pos struct{ x, y int }
+	var allChars []Pos
+	for y, nms_chars := range nms_lines {
+		for x := range nms_chars {
+			allChars = append(allChars, Pos{x, y})
 		}
+	}
+
+	// If random flag is set, shuffle the characters
+	if *opt_random {
+		rand.Shuffle(len(allChars), func(i, j int) { allChars[i], allChars[j] = allChars[j], allChars[i] })
+	}
+
+	// Reveal all characters
+	for _, pos := range allChars {
+		nms_reveal(&nms_lines[pos.y][pos.x])
+		screen.SetContent(pos.x, pos.y, nms_lines[pos.y][pos.x].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+		screen.Show()
+		delay(time.Duration(*opt_delay))
 	}
 
 	// Wait for a key press before exiting
