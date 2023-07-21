@@ -1,3 +1,5 @@
+![image](https://github.com/hollerith/nomo/assets/659626/52e9bb0c-ec42-49fb-a9f9-a7690580feae)
+
 # No more secrets
 
 NMS is a terminal-based text scrambling program written in Go. It reads in text, scrambles the characters, displays the scrambled text, then reveals the original text character-by-character in a decryption animation.
