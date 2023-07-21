@@ -180,6 +180,15 @@ func main() {
 
     time.Sleep(2 * time.Second) // Pause before starting to reveal
 
+    const scrambleIterations = 5 // number of times to scramble each character before revealing
+    for iteration := 0; iteration < scrambleIterations; iteration++ {
+        for _, pos := range allChars {
+            nms_scramble(&nms_lines[pos.y][pos.x])
+            screen.SetContent(pos.x+hPad, pos.y+vPad, nms_lines[pos.y][pos.x].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorLightBlue))
+            screen.Show()
+        }
+    }
+
     for _, pos := range allChars {
         nms_reveal(&nms_lines[pos.y][pos.x])
         screen.SetContent(pos.x+hPad, pos.y+vPad, nms_lines[pos.y][pos.x].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorCornflowerBlue))
