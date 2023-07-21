@@ -7,7 +7,6 @@ import (
 	"github.com/gdamore/tcell"
 	"os"
 	"time"
-	"unicode"
 	"math/rand"
 )
 
@@ -24,12 +23,15 @@ type NmsChar struct {
 }
 
 func init() {
-	for i := 1; i <= 127; i++ {
-		if unicode.IsPrint(rune(i)) && i != ' ' {
-			charset += string(rune(i))
-		}
-	}
-	rand.Seed(time.Now().UnixNano())
+    // Standard ASCII.
+    for i := 33; i <= 126; i++ {
+        charset += string(rune(i))
+    }
+    // Line-drawing characters from the extended ASCII.
+    for _, i := range []int{179, 180, 191, 192, 193, 194, 195, 196, 197, 217, 218, 219} {
+        charset += string(rune(i))
+    }
+    rand.Seed(time.Now().UnixNano())
 }
 
 func nms_scramble(c *NmsChar) {
@@ -82,7 +84,7 @@ func main() {
 	flag.Parse()
 
 	if *opt_version {
-		fmt.Println("nms version 0.3.0")
+		fmt.Println("nms v0.5.0")
 		os.Exit(0)
 	}
 
@@ -95,31 +97,18 @@ func main() {
 	}
 	defer screen.Fini()
 
-	// Read the entire input into a single string
 	var inputLines []string
 	if len(flag.Args()) > 0 {
-		// Read from the file if a filename is provided as a command-line argument
 		inputLines = nms_read_file(flag.Arg(0))
 	} else {
-		// Otherwise, read from stdin
 		inputLines = nms_read_stdin()
 	}
 
-	// Process each line
 	nms_lines := make([][]NmsChar, len(inputLines))
 	for i, line := range inputLines {
 		nms_lines[i] = nms_process_input(line)
 	}
 
-	// Scramble and display all lines
-	for y, nms_chars := range nms_lines {
-		for x, ch := range nms_chars {
-			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorLightBlue))
-		}
-	}
-	screen.Show()
-
-	// Prepare the list of all characters to reveal
 	type Pos struct{ x, y int }
 	var allChars []Pos
 	for y, nms_chars := range nms_lines {
@@ -128,28 +117,36 @@ func main() {
 		}
 	}
 
-    rand.Shuffle(len(allChars), func(i, j int) { allChars[i], allChars[j] = allChars[j], allChars[i] })
+	rand.Shuffle(len(allChars), func(i, j int) { allChars[i], allChars[j] = allChars[j], allChars[i] })
 
-    // Create a channel for events
-    eventCh := make(chan tcell.Event)
-    go func() {
-        for {
-            eventCh <- screen.PollEvent()
-        }
-    }()
+	eventCh := make(chan tcell.Event)
+	go func() {
+		for {
+			eventCh <- screen.PollEvent()
+		}
+	}()
 
-	// Reveal all characters
+	for y, nms_chars := range nms_lines {
+		for x, ch := range nms_chars {
+			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorLightBlue))
+		}
+		screen.Show()
+		time.Sleep(time.Duration(*opt_delay) * time.Millisecond)
+	}
+
+	time.Sleep(2 * time.Second) // Pause before starting to reveal
+
 	for _, pos := range allChars {
 		nms_reveal(&nms_lines[pos.y][pos.x])
 		screen.SetContent(pos.x, pos.y, nms_lines[pos.y][pos.x].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorCornflowerBlue))
 		screen.Show()
 
 		select {
-		case <-time.After(time.Duration(*opt_delay) * time.Millisecond):
 		case ev := <-eventCh:
 			if _, ok := ev.(*tcell.EventKey); ok {
 				return
 			}
+		default:
 		}
 	}
 }
