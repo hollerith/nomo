@@ -13,6 +13,7 @@ import (
 var (
 	opt_version = flag.Bool("version", false, "print version information")
 	opt_delay   = flag.Int("delay", 5, "set delay in ms")
+	opt_sneakers = flag.Bool("sneakers", false, "display the 'Sneakers' screen")
 
 	charset string // String containing the printable ASCII characters for scrambling
 )
@@ -23,15 +24,15 @@ type NmsChar struct {
 }
 
 func init() {
-    // Standard ASCII.
-    for i := 33; i <= 126; i++ {
-        charset += string(rune(i))
-    }
-    // Line-drawing characters from the extended ASCII.
-    for _, i := range []int{179, 180, 191, 192, 193, 194, 195, 196, 197, 217, 218, 219} {
-        charset += string(rune(i))
-    }
-    rand.Seed(time.Now().UnixNano())
+	// Standard ASCII.
+	for i := 33; i <= 126; i++ {
+		charset += string(rune(i))
+	}
+	// Line-drawing characters from the extended ASCII.
+	for _, i := range []int{179, 180, 191, 192, 193, 194, 195, 196, 197, 217, 218, 219} {
+		charset += string(rune(i))
+	}
+	rand.Seed(time.Now().UnixNano())
 }
 
 func nms_scramble(c *NmsChar) {
@@ -71,6 +72,29 @@ func nms_read_file(filename string) []string {
 	return lines
 }
 
+func nms_sneakers_screen() []string {
+	return []string{
+		"DATANET PROC RECORD:  45-3456-W-3452                                                           Transnet on/xc-3",
+		"                           FEDERAL RESERVE TRANSFER NODE",
+		"",
+		"                           National Headquarters",
+		"",
+		"   ************  Remote Systems Network Input Station  ************",
+		"   ================================================================================",
+		"",
+		"   [1] Interbank Funds Transfer  (Code Prog: 485-GWU)",
+		"   [2] International Telelink Access  (Code Lim: XRP-262)",
+		"   [3] Remote Facsimile Send/Receive  (Code Tran:  2LZP-517)",
+		"   [4] Regional Bank Interconnect  (Security Code:  47-B34)",
+		"   [5] Update System Parameters  (Entry Auth. Req.)",
+		"   [6] Remote Operator Logon/Logoff",
+		"",
+		"   ================================================================================",
+		"",
+		"   [ ] Select Option or ESC to Abort",
+	}
+}
+
 func nms_process_input(input string) []NmsChar {
 	nms_chars := make([]NmsChar, len(input))
 	for i, ch := range input {
@@ -98,7 +122,9 @@ func main() {
 	defer screen.Fini()
 
 	var inputLines []string
-	if len(flag.Args()) > 0 {
+	if *opt_sneakers {
+		inputLines = nms_sneakers_screen()
+	} else if len(flag.Args()) > 0 {
 		inputLines = nms_read_file(flag.Arg(0))
 	} else {
 		inputLines = nms_read_stdin()
@@ -149,4 +175,6 @@ func main() {
 		default:
 		}
 	}
+
+    time.Sleep(5 * time.Second) // Pause before exit
 }
