@@ -1,4 +1,4 @@
-# NMS Text Scrambler
+# No more secrets
 
 NMS is a terminal-based text scrambling program written in Go. It reads in text, scrambles the characters, displays the scrambled text, then reveals the original text character-by-character in a decryption animation.
 
