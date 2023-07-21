@@ -5,18 +5,16 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gdamore/tcell"
-	"io/ioutil"
-	"math/rand"
 	"os"
-	"strings"
 	"time"
 	"unicode"
+	"math/rand"
 )
 
 var (
 	opt_version = flag.Bool("version", false, "print version information")
-	opt_delay   = flag.Int("delay", 1000, "set delay in ms")
-	opt_random  = flag.Bool("random", false, "randomize reveal")
+	opt_delay   = flag.Int("delay", 10, "set delay in ms")
+	opt_random  = flag.Bool("random", true, "randomize reveal")
 	opt_auto    = flag.Bool("auto", false, "no user interaction")
 
 	charset string // String containing the printable ASCII characters for scrambling
@@ -52,18 +50,29 @@ func delay(ms time.Duration) {
 	time.Sleep(ms * time.Millisecond)
 }
 
-func nms_read_stdin() string {
-	reader := bufio.NewReader(os.Stdin)
-	input, _ := ioutil.ReadAll(reader)
-	return string(input)
+func nms_read_stdin() []string {
+	lines := []string{}
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines
 }
 
-func nms_read_file(filename string) string {
-	data, err := ioutil.ReadFile(filename)
+func nms_read_file(filename string) []string {
+	file, err := os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
-	return string(data)
+	defer file.Close()
+
+	lines := []string{}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	return lines
 }
 
 func nms_process_input(input string) []NmsChar {
@@ -93,19 +102,18 @@ func main() {
 	defer screen.Fini()
 
 	// Read the entire input into a single string
-	var input string
+	var inputLines []string
 	if len(flag.Args()) > 0 {
 		// Read from the file if a filename is provided as a command-line argument
-		input = nms_read_file(flag.Arg(0))
+		inputLines = nms_read_file(flag.Arg(0))
 	} else {
 		// Otherwise, read from stdin
-		input = nms_read_stdin()
+		inputLines = nms_read_stdin()
 	}
 
-	// Split the input into lines and process each line
-	lines := strings.Split(input, "\n")
-	nms_lines := make([][]NmsChar, len(lines))
-	for i, line := range lines {
+	// Process each line
+	nms_lines := make([][]NmsChar, len(inputLines))
+	for i, line := range inputLines {
 		nms_lines[i] = nms_process_input(line)
 	}
 
