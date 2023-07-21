@@ -13,9 +13,7 @@ import (
 
 var (
 	opt_version = flag.Bool("version", false, "print version information")
-	opt_delay   = flag.Int("delay", 10, "set delay in ms")
-	opt_random  = flag.Bool("random", true, "randomize reveal")
-	opt_auto    = flag.Bool("auto", false, "no user interaction")
+	opt_delay   = flag.Int("delay", 5, "set delay in ms")
 
 	charset string // String containing the printable ASCII characters for scrambling
 )
@@ -44,10 +42,6 @@ func nms_scramble(c *NmsChar) {
 
 func nms_reveal(c *NmsChar) {
 	c.scram = c.ch
-}
-
-func delay(ms time.Duration) {
-	time.Sleep(ms * time.Millisecond)
 }
 
 func nms_read_stdin() []string {
@@ -120,11 +114,10 @@ func main() {
 	// Scramble and display all lines
 	for y, nms_chars := range nms_lines {
 		for x, ch := range nms_chars {
-			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+			screen.SetContent(x, y, ch.scram, nil, tcell.StyleDefault.Foreground(tcell.ColorLightBlue))
 		}
 	}
 	screen.Show()
-	delay(time.Duration(*opt_delay))
 
 	// Prepare the list of all characters to reveal
 	type Pos struct{ x, y int }
@@ -135,21 +128,28 @@ func main() {
 		}
 	}
 
-	// If random flag is set, shuffle the characters
-	if *opt_random {
-		rand.Shuffle(len(allChars), func(i, j int) { allChars[i], allChars[j] = allChars[j], allChars[i] })
-	}
+    rand.Shuffle(len(allChars), func(i, j int) { allChars[i], allChars[j] = allChars[j], allChars[i] })
+
+    // Create a channel for events
+    eventCh := make(chan tcell.Event)
+    go func() {
+        for {
+            eventCh <- screen.PollEvent()
+        }
+    }()
 
 	// Reveal all characters
 	for _, pos := range allChars {
 		nms_reveal(&nms_lines[pos.y][pos.x])
-		screen.SetContent(pos.x, pos.y, nms_lines[pos.y][pos.x].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorWhite))
+		screen.SetContent(pos.x, pos.y, nms_lines[pos.y][pos.x].scram, nil, tcell.StyleDefault.Foreground(tcell.ColorCornflowerBlue))
 		screen.Show()
-		delay(time.Duration(*opt_delay))
-	}
 
-	// Wait for a key press before exiting
-	if !*opt_auto {
-		screen.PollEvent()
+		select {
+		case <-time.After(time.Duration(*opt_delay) * time.Millisecond):
+		case ev := <-eventCh:
+			if _, ok := ev.(*tcell.EventKey); ok {
+				return
+			}
+		}
 	}
 }
