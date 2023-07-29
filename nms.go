@@ -4,10 +4,12 @@ import (
     "bufio"
     "flag"
     "fmt"
-    "github.com/gdamore/tcell"
     "os"
     "time"
     "math/rand"
+
+    "github.com/gdamore/tcell"
+    "github.com/acarl005/stripansi"
 )
 
 var (
@@ -98,6 +100,7 @@ func nms_sneakers_screen() []string {
 }
 
 func nms_process_input(input string) []NmsChar {
+    input = stripansi.Strip(input)
     nms_chars := make([]NmsChar, len(input))
     for i, ch := range input {
         nms_chars[i] = NmsChar{ch: ch}
