@@ -33,6 +33,7 @@ To build NMS, you will need:
 
 - Go 1.12 or higher
 - [github.com/gdamore/tcell](https://github.com/gdamore/tcell)
+- [github.com/acarl005/stripansi](https://github.com/acarl005/stripansi)
 
 Run:
 
